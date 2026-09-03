@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, type ReactNode, useMemo } from 'react'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
-import { NavLink } from 'react-router'
+import { NavLink, useNavigate } from 'react-router'
 import { api, type Agent, type AuditEntry, type ServiceInfo, type ServiceActionInfo, type VariableMeta, type LocalService, type RuntimePlaceholder, type VaultItem } from '../api/client'
 import { formatDistanceToNow } from 'date-fns'
 import { serviceName, serviceDescription } from '../lib/services'
@@ -1178,6 +1178,7 @@ function AddServiceModal({
   services,
   onClose,
   onSuccess,
+  onAddCustomIntegration,
   googleOAuthMissing,
   microsoftOAuthMissing,
   activeConnectionCount,
@@ -1185,6 +1186,7 @@ function AddServiceModal({
   services: ServiceInfo[]
   onClose: () => void
   onSuccess: (serviceId: string) => void
+  onAddCustomIntegration?: () => void
   googleOAuthMissing: boolean
   microsoftOAuthMissing: boolean
   activeConnectionCount: number
@@ -1756,8 +1758,25 @@ function AddServiceModal({
             })}
           </div>
 
+          {onAddCustomIntegration && (
+            <div className="mt-4 rounded-xl border border-dashed border-brand/50 bg-brand/5 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-text-primary">Can’t find your service?</p>
+                <p className="text-xs text-text-tertiary mt-1">
+                  Add a custom integration from its OpenAPI specification or API documentation.
+                </p>
+              </div>
+              <button
+                onClick={onAddCustomIntegration}
+                className="shrink-0 px-3 py-2 rounded-lg border border-border-strong text-text-primary text-xs font-medium hover:bg-surface-2 transition-colors"
+              >
+                Add custom integration
+              </button>
+            </div>
+          )}
+
           {serviceTypes.length === 0 && (
-            <p className="text-sm text-text-tertiary py-4">No services available.</p>
+            <p className="text-sm text-text-tertiary py-4">No matching services available.</p>
           )}
         </div>
       </div>
@@ -1978,6 +1997,7 @@ function LocalServicesSection() {
 
 export default function Services() {
   const qc = useQueryClient()
+  const navigate = useNavigate()
   const { features, currentOrg } = useAuth()
   const orgId = currentOrg?.id
   // The connect-service flow is a personal self-service action. In org mode it
@@ -2003,6 +2023,11 @@ export default function Services() {
     setSuccessService(serviceId)
     if (successTimerRef.current) clearTimeout(successTimerRef.current)
     successTimerRef.current = setTimeout(() => setSuccessService(null), 5000)
+  }
+
+  function handleAddCustomIntegration() {
+    setShowModal(false)
+    navigate('/dashboard/adapter-gen')
   }
 
   useEffect(() => () => { if (successTimerRef.current) clearTimeout(successTimerRef.current) }, [])
@@ -2099,7 +2124,7 @@ export default function Services() {
               to="/dashboard/adapter-gen"
               className="px-4 py-2 rounded-md border border-border-strong text-text-primary text-sm font-medium hover:bg-surface-2 transition-colors"
             >
-              Generate integration
+              Add custom integration
             </NavLink>
           )}
           <button
@@ -2217,6 +2242,7 @@ export default function Services() {
           services={allServices}
           onClose={() => setShowModal(false)}
           onSuccess={handleConnectionSuccess}
+          onAddCustomIntegration={features?.adapter_gen ? handleAddCustomIntegration : undefined}
           googleOAuthMissing={googleOAuthMissing}
           microsoftOAuthMissing={microsoftOAuthMissing}
           activeConnectionCount={activeServices.length}

@@ -131,6 +131,19 @@ llm:
     # model: claude-haiku-4-5-20251001
     # timeout_seconds: 10
 
+  # Custom integration generation — turns public OpenAPI specifications or API
+  # documentation into a reviewable integration definition. The source is sent
+  # to the configured LLM provider, then every action is independently
+  # risk-classified before it can be saved. Keep this disabled unless your
+  # deployment has an LLM credential configured. Never paste credentials or
+  # private documentation into the generator.
+  # Env overrides: CLAWVISOR_LLM_ADAPTER_GEN_{ENABLED,PROVIDER,ENDPOINT,API_KEY,MODEL,TIMEOUT_SECONDS}
+  adapter_gen:
+    enabled: false
+    # provider, endpoint, api_key, and model inherit from top-level llm.
+    # model: claude-opus-4-6
+    # timeout_seconds: 120
+
 auto_update:
   enabled: false           # opt-in automatic binary updates. Env: CLAWVISOR_AUTO_UPDATE_ENABLED
                            # when enabled, Clawvisor periodically checks GitHub for new releases,
