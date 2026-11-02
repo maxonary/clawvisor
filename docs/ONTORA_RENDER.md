@@ -19,9 +19,18 @@ so it can use the private connection.
 values across deployments. The vault key encrypts the credentials in Postgres;
 losing or replacing it makes existing encrypted credentials unreadable.
 
-Registration is limited to `max@ontora.com`, with one human user. The first
-registered user becomes the administrator. Set the password directly in the new
-instance's dashboard; never commit it. Invitation-only registration is also enabled.
+The initial administrator registers as `max@ontora.com`. Set the password directly
+in the instance's dashboard; never commit it. `MAX_USERS=0` removes the account
+cap so the administrator can invite additional team members.
+
+`AUTH_REQUIRE_INVITE=true` keeps subsequent registration invitation-only. The
+`ALLOWED_EMAILS` setting restricts initial registration; valid administrator-issued
+invites bypass that list, so invited teammates can use their own email addresses.
+Invite claims create member accounts pending email verification. Configure the
+supported email verification delivery before onboarding teammates; without it,
+claiming an invitation does not produce a usable signed-in account. Admin role
+promotion remains a separate administrator action.
+
 This is a fresh instance: existing ClawVisor accounts, credentials, policies,
 audit history, and agent integrations have not been migrated.
 
