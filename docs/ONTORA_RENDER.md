@@ -1,5 +1,10 @@
 # Ontora Render deployment
 
+- Instance: https://ontora-clawvisor.onrender.com
+- Render service: https://dashboard.render.com/web/srv-dbki2clg1s2s738ab84g
+- Blueprint: https://dashboard.render.com/blueprint/exs-dbkhv70ae00c73870rq0
+- Readiness: https://ontora-clawvisor.onrender.com/ready
+
 Deploy `render.yaml` as a Blueprint in the **Ontora Gbrain / OpenClaw** workspace.
 The web service builds `render/Dockerfile` from this repository's `main` branch.
 Every push to `main` triggers a deployment; Blueprint auto-sync also keeps service
