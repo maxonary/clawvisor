@@ -197,65 +197,6 @@ const authTypes = [
   { value: 'none', label: 'None' },
 ] as const
 
-const installCmd = [
-  'curl -fsSL \\',
-  '  https://raw.githubusercontent.com/clawvisor/clawvisor/main/skills/clawvisor-generate-integration.md \\',
-  '  -o ~/.claude/commands/clawvisor-generate-integration.md \\',
-  '  --create-dirs',
-].join('\n')
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false)
-  return (
-    <button
-      onClick={() => {
-        navigator.clipboard.writeText(text)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-      }}
-      className="text-[10px] px-2 py-0.5 rounded border border-border-default text-text-tertiary hover:text-text-primary hover:bg-surface-2 transition-colors shrink-0"
-    >
-      {copied ? 'Copied' : 'Copy'}
-    </button>
-  )
-}
-
-function DocsTab() {
-  return (
-    <div className="px-5 py-4 space-y-4">
-      <p className="text-sm text-text-secondary">
-        Use the <code className="px-1.5 py-0.5 rounded bg-surface-2 text-text-primary font-mono text-xs">/clawvisor-generate-integration</code> skill
-        in Claude Code to generate integrations from any API documentation.
-      </p>
-
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-text-secondary">Install the skill:</p>
-        <div className="relative bg-surface-0 border border-border-default rounded-md p-3 pr-16">
-          <pre className="font-mono text-xs text-text-secondary leading-relaxed whitespace-pre">{installCmd}</pre>
-          <div className="absolute top-2 right-2">
-            <CopyButton text={installCmd} />
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-text-secondary">Then use it in any Claude Code session:</p>
-        <div className="bg-surface-0 border border-border-default rounded-md p-3 font-mono text-xs text-text-secondary leading-relaxed">
-          <div>/clawvisor-generate-integration Notion</div>
-          <div>/clawvisor-generate-integration Todoist</div>
-          <div>/clawvisor-generate-integration "HubSpot CRM"</div>
-        </div>
-      </div>
-
-      <p className="text-xs text-text-tertiary">
-        Claude will research the API docs, generate the integration YAML with risk classification, and save it to{' '}
-        <code className="px-1 py-0.5 rounded bg-surface-2 font-mono">~/.clawvisor/adapters/</code>.
-        The integration will appear on the Services page immediately.
-      </p>
-    </div>
-  )
-}
-
 type Tab = 'openapi' | 'docs'
 
 function looksLikeUrl(s: string): boolean {
@@ -277,7 +218,7 @@ export default function AdapterGen() {
 
   const generateMut = useMutation({
     mutationFn: () => api.adapterGen.create({
-      sourceType: 'openapi',
+      sourceType: tab,
       source: isUrl ? undefined : source,
       sourceUrl: isUrl ? source.trim() : undefined,
       serviceId: serviceId || undefined,
@@ -316,9 +257,9 @@ export default function AdapterGen() {
   return (
     <div className="p-4 sm:p-8 space-y-6 max-w-5xl">
       <div>
-        <h1 className="text-2xl font-bold text-text-primary">Generate Integration</h1>
+        <h1 className="text-2xl font-bold text-text-primary">Add custom integration</h1>
         <p className="text-sm text-text-tertiary mt-1">
-          Generate a Clawvisor integration from an API source. Risk is independently classified for each action.
+          Add a service that is not in the connector catalog. Every generated action is independently risk-classified before you can save it.
         </p>
       </div>
 
@@ -333,7 +274,7 @@ export default function AdapterGen() {
                 : 'border-transparent text-text-tertiary hover:text-text-secondary'
             }`}
           >
-            OpenAPI Spec
+            OpenAPI specification
           </button>
           <button
             onClick={() => setTab('docs')}
@@ -347,73 +288,70 @@ export default function AdapterGen() {
           </button>
         </div>
 
-        {/* OpenAPI Spec tab */}
-        {tab === 'openapi' && (
-          <div className="px-5 py-4 space-y-4">
-            <textarea
-              value={source}
-              onChange={e => setSource(e.target.value)}
-              placeholder={"Paste an OpenAPI spec or a URL to one\ne.g. https://developer.spotify.com/reference/web-api/open-api-schema.yaml"}
-              className="w-full h-64 text-xs font-mono px-3 py-2 border border-border-default bg-surface-0 text-text-primary rounded-md focus:outline-none focus:ring-1 focus:ring-brand/30 focus:border-brand resize-y placeholder:text-text-tertiary"
-            />
-            {isUrl && (
-              <p className="text-xs text-text-tertiary -mt-2">
-                URL detected — the spec will be fetched from this address.
-              </p>
-            )}
+        <div className="px-5 py-4 space-y-4">
+          <p className="text-sm text-text-secondary">
+            {tab === 'openapi'
+              ? 'Paste an OpenAPI specification, or provide a public URL to one.'
+              : 'Paste API-reference content, or provide a public URL to the service’s API documentation.'}
+          </p>
+          <textarea
+            value={source}
+            onChange={e => setSource(e.target.value)}
+            placeholder={tab === 'openapi'
+              ? 'Paste an OpenAPI spec or a URL to one\ne.g. https://developer.example.com/openapi.yaml'
+              : 'Paste API documentation or a URL to it\ne.g. https://developers.example.com/api-reference'}
+            className="w-full h-64 text-xs font-mono px-3 py-2 border border-border-default bg-surface-0 text-text-primary rounded-md focus:outline-none focus:ring-1 focus:ring-brand/30 focus:border-brand resize-y placeholder:text-text-tertiary"
+          />
+          {isUrl && (
+            <p className="text-xs text-text-tertiary -mt-2">
+              URL detected — Clawvisor will fetch the source from this public address.
+            </p>
+          )}
 
-            {/* Optional overrides */}
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <label className="block text-xs font-medium text-text-secondary mb-1">
-                  Service ID <span className="text-text-tertiary">(optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={serviceId}
-                  onChange={e => setServiceId(e.target.value)}
-                  placeholder="e.g. jira, pagerduty"
-                  className="w-full text-xs px-2 py-1.5 border border-border-default bg-surface-0 text-text-primary rounded focus:outline-none focus:ring-1 focus:ring-brand/30 focus:border-brand"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="block text-xs font-medium text-text-secondary mb-1">
-                  Auth Type <span className="text-text-tertiary">(optional)</span>
-                </label>
-                <select
-                  value={authType}
-                  onChange={e => setAuthType(e.target.value)}
-                  className="w-full text-xs px-2 py-1.5 border border-border-default bg-surface-0 text-text-primary rounded focus:outline-none focus:ring-1 focus:ring-brand/30 focus:border-brand"
-                >
-                  {authTypes.map(at => (
-                    <option key={at.value} value={at.value}>{at.label}</option>
-                  ))}
-                </select>
-              </div>
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-text-secondary mb-1">
+                Service ID <span className="text-text-tertiary">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={serviceId}
+                onChange={e => setServiceId(e.target.value)}
+                placeholder="e.g. posthog, supabase"
+                className="w-full text-xs px-2 py-1.5 border border-border-default bg-surface-0 text-text-primary rounded focus:outline-none focus:ring-1 focus:ring-brand/30 focus:border-brand"
+              />
             </div>
-
-            {/* Generate button */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => generateMut.mutate()}
-                disabled={!hasInput || generateMut.isPending}
-                className="px-4 py-2 rounded-md bg-brand text-surface-0 text-sm font-medium hover:bg-brand-strong disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-text-secondary mb-1">
+                Auth Type <span className="text-text-tertiary">(optional)</span>
+              </label>
+              <select
+                value={authType}
+                onChange={e => setAuthType(e.target.value)}
+                className="w-full text-xs px-2 py-1.5 border border-border-default bg-surface-0 text-text-primary rounded focus:outline-none focus:ring-1 focus:ring-brand/30 focus:border-brand"
               >
-                {generateMut.isPending ? 'Generating...' : 'Generate Integration'}
-              </button>
-              {generateMut.isPending && (
-                <span className="text-xs text-text-tertiary">
-                  This may take 30-60 seconds (generates the definition and classifies risk independently)
-                </span>
-              )}
+                {authTypes.map(at => (
+                  <option key={at.value} value={at.value}>{at.label}</option>
+                ))}
+              </select>
             </div>
           </div>
-        )}
 
-        {/* API Documentation tab */}
-        {tab === 'docs' && (
-          <DocsTab />
-        )}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => generateMut.mutate()}
+              disabled={!hasInput || generateMut.isPending}
+              className="px-4 py-2 rounded-md bg-brand text-surface-0 text-sm font-medium hover:bg-brand-strong disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {generateMut.isPending ? 'Generating...' : 'Generate integration'}
+            </button>
+            {generateMut.isPending && (
+              <span className="text-xs text-text-tertiary">
+                This may take 30-60 seconds while Clawvisor generates the definition and classifies its risks.
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Error */}
