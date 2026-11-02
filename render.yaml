@@ -12,9 +12,14 @@ services:
     dockerfilePath: ./render/Dockerfile
     dockerContext: .
     healthCheckPath: /ready
+    domains:
+      - clawvisor.ontora.com
+    renderSubdomainPolicy: disabled
     envVars:
       - key: SERVER_HOST
         value: "0.0.0.0"
+      - key: PUBLIC_URL
+        value: https://clawvisor.ontora.com
       - key: DATABASE_URL
         fromDatabase:
           name: ontora-clawvisor-db

@@ -1,9 +1,9 @@
 # Ontora Render deployment
 
-- Instance: https://ontora-clawvisor.onrender.com
+- Instance: https://clawvisor.ontora.com
 - Render service: https://dashboard.render.com/web/srv-dbki2clg1s2s738ab84g
 - Blueprint: https://dashboard.render.com/blueprint/exs-dbkhv70ae00c73870rq0
-- Readiness: https://ontora-clawvisor.onrender.com/ready
+- Readiness: https://clawvisor.ontora.com/ready
 
 Deploy `render.yaml` as a Blueprint in the **Ontora Gbrain / OpenClaw** workspace.
 The web service builds `render/Dockerfile` from this repository's `main` branch.
@@ -31,8 +31,20 @@ require `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, with the deployment's
 `/api/oauth/callback` URL registered in Google. These optional credentials are
 not required just to host the application and are not requested by the Blueprint.
 
-Render terminates HTTPS. Clawvisor binds `0.0.0.0:$PORT`, derives its public URL
-from `RENDER_EXTERNAL_URL`, and exposes `/ready` as its readiness check.
+Cloudflare terminates public HTTPS at `clawvisor.ontora.com`. The existing
+`mcp-ontora-brain` Cloudflare Tunnel (`b2bb4e9a-0e5b-44da-9758-2ec58e09f4a4`)
+runs on the AlphaClaw Render service in Oregon and forwards this hostname to
+`http://ontora-clawvisor:10000` over Render's private network. Its existing
+`brain.ontora.com` route is preserved. Clawvisor availability therefore also
+depends on that tunnel connector and AlphaClaw service.
+
+DNS is a proxied CNAME to the tunnel's `.cfargotunnel.com` hostname, not to the
+Render public address. Cloudflare manages the tunnel route and DNS; `render.yaml`
+manages Clawvisor's custom domain, `PUBLIC_URL`, and `renderSubdomainPolicy`.
+The default `onrender.com` endpoint is disabled and should return HTTP 404.
+Clawvisor binds `0.0.0.0:$PORT` and exposes `/ready` as its readiness check.
+Its own account authentication continues to protect the dashboard; this does
+not add a separate Cloudflare Access login.
 The managed database preserves state across builds and deployments without an
 attached filesystem disk. Check the deployment in Render and verify `/ready`
 after each release. A code rollback does not roll back database migrations.
