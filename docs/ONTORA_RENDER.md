@@ -52,8 +52,18 @@ Render public address. Cloudflare manages the tunnel route and DNS; `render.yaml
 manages Clawvisor's custom domain, `PUBLIC_URL`, and `renderSubdomainPolicy`.
 The default `onrender.com` endpoint is disabled and should return HTTP 404.
 Clawvisor binds `0.0.0.0:$PORT` and exposes `/ready` as its readiness check.
-Its own account authentication continues to protect the dashboard; this does
-not add a separate Cloudflare Access login.
+Cloudflare Access protects the entire hostname with the existing **Ontora Founder
+Email** policy. Only `max@ontora.com`, `david@ontora.com`, and `leon@ontora.com`
+can authenticate through the Google Workspace identity provider. All other
+identities are denied; no bypass or service-token policy is attached. Sessions
+last up to 12 hours. Clawvisor's own account authentication remains a second layer.
+The tunnel connector also validates Access tokens for this application's audience.
+
+Cloudflare Access application: `5c0bf76b-7584-42b6-bc88-dbcbac3dae0b`.
+The shared founders policy is managed in Cloudflare; changes to that reusable
+policy also affect its other linked applications. Public API and OAuth callback
+requests must also pass this gate. Do not add unauthenticated path exceptions
+without reviewing their scope.
 The managed database preserves state across builds and deployments without an
 attached filesystem disk. Check the deployment in Render and verify `/ready`
 after each release. A code rollback does not roll back database migrations.
