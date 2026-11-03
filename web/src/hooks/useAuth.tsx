@@ -23,7 +23,7 @@ interface AuthContextValue {
   user: User | null
   isLoading: boolean
   isAuthenticated: boolean
-  authMode: 'magic_link' | 'password' | 'passkey' | null
+  authMode: 'magic_link' | 'password' | 'passkey' | 'cloudflare' | null
   features: FeatureSet | null
   currentOrg: Org | null
   setCurrentOrg: (org: Org | null) => void
@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [authMode, setAuthMode] = useState<'magic_link' | 'password' | 'passkey' | null>(null)
+  const [authMode, setAuthMode] = useState<'magic_link' | 'password' | 'passkey' | 'cloudflare' | null>(null)
   const [features, setFeatures] = useState<FeatureSet | null>(null)
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null)
   const [currentOrg, setCurrentOrgState] = useState<Org | null>(() => {

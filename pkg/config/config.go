@@ -314,12 +314,22 @@ type VaultConfig struct {
 	GCPSMEndpoint string `yaml:"-"` // env CLAWVISOR_VAULT_GCP_SM_ENDPOINT
 }
 
+// AccessSSOConfig pins the Cloudflare Access application and its human users.
+type AccessSSOConfig struct {
+	Enabled        bool     `yaml:"enabled"`
+	Issuer         string   `yaml:"issuer"`
+	Audience       string   `yaml:"audience"`
+	Emails         []string `yaml:"emails"`
+	BootstrapAdmin string   `yaml:"bootstrap_admin"`
+}
+
 type AuthConfig struct {
-	JWTSecret       string   `yaml:"jwt_secret"`
-	AccessTokenTTL  string   `yaml:"access_token_ttl"`
-	RefreshTokenTTL string   `yaml:"refresh_token_ttl"`
-	AllowedEmails   []string `yaml:"allowed_emails"`
-	MaxUsers        int      `yaml:"max_users"` // 0 = unlimited
+	AccessSSO       AccessSSOConfig `yaml:"access_sso"`
+	JWTSecret       string          `yaml:"jwt_secret"`
+	AccessTokenTTL  string          `yaml:"access_token_ttl"`
+	RefreshTokenTTL string          `yaml:"refresh_token_ttl"`
+	AllowedEmails   []string        `yaml:"allowed_emails"`
+	MaxUsers        int             `yaml:"max_users"` // 0 = unlimited
 	// RequireInvite, when true, rejects registration without a valid invite
 	// token (403 INVITE_REQUIRED) — except the very first user, who always
 	// registers and becomes admin. Default false: open-registration behavior
@@ -876,6 +886,21 @@ func Load(path string) (*Config, error) {
 	}
 	if v := os.Getenv("AUTH_MODE"); v != "" {
 		cfg.Server.AuthMode = v
+	}
+	if v := os.Getenv("ACCESS_SSO_ENABLED"); v != "" {
+		cfg.Auth.AccessSSO.Enabled = v == "true" || v == "1"
+	}
+	if v := os.Getenv("ACCESS_SSO_ISSUER"); v != "" {
+		cfg.Auth.AccessSSO.Issuer = strings.TrimRight(v, "/")
+	}
+	if v := os.Getenv("ACCESS_SSO_AUDIENCE"); v != "" {
+		cfg.Auth.AccessSSO.Audience = v
+	}
+	if v := os.Getenv("ACCESS_SSO_EMAILS"); v != "" {
+		cfg.Auth.AccessSSO.Emails = strings.Split(v, ",")
+	}
+	if v := os.Getenv("ACCESS_SSO_BOOTSTRAP_ADMIN"); v != "" {
+		cfg.Auth.AccessSSO.BootstrapAdmin = v
 	}
 	if v := os.Getenv("ALLOWED_EMAILS"); v != "" {
 		cfg.Auth.AllowedEmails = strings.Split(v, ",")

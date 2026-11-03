@@ -19,35 +19,27 @@ so it can use the private connection.
 values across deployments. The vault key encrypts the credentials in Postgres;
 losing or replacing it makes existing encrypted credentials unreadable.
 
-The initial administrator registers as `max@ontora.com`. Set the password directly
-in the instance's dashboard; never commit it. `MAX_USERS=0` removes the account
-cap so the administrator can invite additional team members.
+Founders sign in with their Ontora Google Workspace identities through the
+existing Cloudflare Access gate. The application verifies the signed Access
+assertion and only admits `max@ontora.com`, `leon@ontora.com`, and
+`david@ontora.com`. Max is the bootstrap administrator; other new founders are
+members. Existing account roles and data are preserved. See **Founder Google
+sign-in** below for configuration, rollout, and revocation details.
 
-`AUTH_REQUIRE_INVITE=true` keeps subsequent registration invitation-only. The
-`ALLOWED_EMAILS` setting restricts initial registration; valid administrator-issued
-invites bypass that list, so invited teammates can use their own email addresses.
-Invite claims create member accounts pending email verification. Configure the
-supported email verification delivery before onboarding teammates; without it,
-claiming an invitation does not produce a usable signed-in account. Admin role
-promotion remains a separate administrator action.
-
-Instance administrators can open **Users** in the dashboard sidebar
-(`/dashboard/users`) to view accounts and verification status, create and copy
-48-hour member invitation links, revoke invitations, change roles, and remove
-accounts. Role changes and removals require confirmation. The screen protects
-your own account and the last administrator; the existing server authorization
-and last-admin checks remain authoritative. Links open `/join?token=...` for
-password registration, which leaves the new account pending verification.
-The screen does not send invitation or verification emails, bypass verification,
-or grant access through Cloudflare. The founder-only Google Workspace policy
-still applies to every user.
+Instance administrators can open **Users** (`/dashboard/users`) to view accounts,
+change roles, and remove accounts. Role changes and removals require confirmation.
+The screen protects your own account and the last administrator; server-side
+checks remain authoritative. In Google-only mode, password invitations are
+replaced with an explanation of the founder allowlist. No invitation or
+verification email is sent, and password/magic enrollment routes are disabled.
+`AUTH_REQUIRE_INVITE=true` remains a fallback safeguard if SSO is disabled.
 
 This is a fresh instance: existing ClawVisor accounts, credentials, policies,
 audit history, and agent integrations have not been migrated.
 
 After login, configure the required service credentials and LLM verification
 provider through supported Clawvisor settings / Render secrets. Google services
-require `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, with the deployment's
+such as Gmail require `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, with the deployment's
 `/api/oauth/callback` URL registered in Google. These optional credentials are
 not required just to host the application and are not requested by the Blueprint.
 
@@ -78,3 +70,47 @@ without reviewing their scope.
 The managed database preserves state across builds and deployments without an
 attached filesystem disk. Check the deployment in Render and verify `/ready`
 after each release. A code rollback does not roll back database migrations.
+
+
+## Founder Google sign-in
+
+`ACCESS_SSO_ENABLED=true` connects the application's login to the existing
+Cloudflare Access Google Workspace gate. The app validates RS256 signatures
+against the configured issuer's cached public keys and checks expiry, issuer,
+application audience, human identity, and the exact founder email allowlist.
+It never trusts the email header alone. No additional Google OAuth client or
+outbound verification email is needed.
+
+The Render Blueprint pins `ACCESS_SSO_ISSUER`, `ACCESS_SSO_AUDIENCE`,
+`ACCESS_SSO_EMAILS` (Max, Leon, David), and `ACCESS_SSO_BOOTSTRAP_ADMIN` (Max).
+The first successful sign-in creates an authorized founder as a member, or Max
+as an administrator. Existing accounts and roles are preserved; an existing
+pending account becomes verified only after its signed Google identity matches.
+Mixed-case legacy emails are matched without merging ambiguous duplicates.
+Password registration/login and local magic-link enrollment are disabled.
+Legacy registration/verification links lead to the Google login screen.
+
+All browser bearer sessions, including old password sessions, require the same
+valid Access identity on every request and refresh. Private Render agent/API
+tokens keep their existing independent authentication; an agent token cannot
+be exchanged for a human session. `/ready` remains reachable on the private
+network for Render's health check.
+
+To revoke a founder's ability to sign in, remove their email from both
+`ACCESS_SSO_EMAILS` and the Cloudflare founder policy. Deleting their application
+account alone revokes its agents and removes its data, but an allowlisted
+identity can create a new member account on its next sign-in. The bootstrap
+administrator is restored as admin if its account is recreated.
+
+Roll out by merging the SSO PR into `main`, allowing Render's Blueprint sync
+and auto-deploy to finish, then opening `https://clawvisor.ontora.com/login` as
+an authorized founder and choosing **Continue with Ontora Google**. Confirm
+that the dashboard opens and stays authenticated after a reload. This last
+interactive check requires a real founder Google session; automated tests use
+synthetic signed assertions and do not impersonate a founder.
+
+Rollback: revert the SSO commit and deploy that revert, keeping the existing
+Cloudflare founder policy and disabled Render URL in place. Password account
+hashes are preserved. Google-provisioned accounts intentionally have no usable
+password; returning to password auth requires an intentional account recovery
+process for those users.

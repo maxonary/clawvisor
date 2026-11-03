@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router'
 import { useAuth } from './hooks/useAuth'
 import Login from './pages/Login'
+import AccessLogin from './pages/AccessLogin'
 import SSOLogin from './pages/SSOLogin'
 import Register from './pages/Register'
 import MagicLink from './pages/MagicLink'
@@ -72,7 +73,8 @@ export default function App() {
   const { isAuthenticated, isLoading, authMode, features } = useAuth()
 
   const unauthRedirect = authMode === 'magic_link' ? '/magic-link' : '/login'
-  const passwordAuth = features?.password_auth ?? false
+  const accessSSO = authMode === 'cloudflare'
+  const passwordAuth = !accessSSO && (features?.password_auth ?? false)
   const ssoEnabled = features?.sso ?? false
 
   return (
@@ -88,13 +90,14 @@ export default function App() {
           )
         }
       />
-      {passwordAuth && <Route path="/login" element={<Login />} />}
+      {(passwordAuth || accessSSO) && <Route path="/login" element={accessSSO ? <AccessLogin /> : <Login />} />}
+      {accessSSO && ['/register', '/join', '/check-email', '/verify-email', '/magic-link', '/forgot-password', '/reset-password'].map(path => <Route key={path} path={path} element={<Navigate to="/login" replace />} />)}
       {passwordAuth && <Route path="/register" element={<Register />} />}
       {passwordAuth && <Route path="/forgot-password" element={<ForgotPassword />} />}
       {passwordAuth && <Route path="/reset-password" element={<ResetPassword />} />}
-      <Route path="/magic-link" element={<MagicLink />} />
-      <Route path="/check-email" element={<CheckEmail />} />
-      <Route path="/verify-email" element={<VerifyEmail />} />
+      {!accessSSO && <Route path="/magic-link" element={<MagicLink />} />}
+      {!accessSSO && <Route path="/check-email" element={<CheckEmail />} />}
+      {!accessSSO && <Route path="/verify-email" element={<VerifyEmail />} />}
       <Route path="/waitlist" element={<Waitlist />} />
       <Route path="/accept-invite" element={<AcceptInvite />} />
       {passwordAuth && <Route path="/join" element={<JoinInstance />} />}

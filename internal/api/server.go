@@ -606,6 +606,9 @@ func (s *Server) routes() http.Handler {
 	} else if s.features.PasswordAuth {
 		authMode = "password"
 	}
+	if s.cfg.Auth.AccessSSO.Enabled {
+		authMode = "cloudflare"
+	}
 	healthHandler := handlers.NewHealthHandler(s.store, s.vault)
 	configHandler := handlers.NewConfigHandler(authMode, s.cfg.ProxyLite.PublicURL)
 	restrictionsHandler := handlers.NewRestrictionsHandler(s.store)
@@ -889,7 +892,11 @@ func (s *Server) routes() http.Handler {
 			gatewayRL, llmAgentKeyFn, llmPreAuthKeyFn, rlCfg.Gateway.Limit,
 			true, false,
 		)
-		handler := securityMiddleware(logMiddleware(recoverMiddleware(mux)))
+		var routed http.Handler = mux
+		if s.cfg.Auth.AccessSSO.Enabled {
+			routed = authHandler.ProtectAccessSessions(routed)
+		}
+		handler := securityMiddleware(logMiddleware(recoverMiddleware(routed)))
 		if s.wrapRoutes != nil {
 			handler = s.wrapRoutes(handler)
 		}
@@ -914,10 +921,15 @@ func (s *Server) routes() http.Handler {
 	mux.Handle("POST /api/auth/logout", optionalUserAuthRateLimited(authHandler.Logout))
 	mux.Handle("GET /api/me", user(authHandler.Me))
 
-	// Magic link auth — /local is always registered so the CLI gets a
-	// proper JSON error instead of the SPA HTML when magic links are disabled.
-	mux.Handle("POST /api/auth/magic/local", authRateLimited(authHandler.GenerateMagicLocal))
-	if s.magicStore != nil {
+	// Local magic auth is unavailable in Access SSO mode. Other deployments
+	// retain the explicit /local route for a useful CLI capability error.
+	if !s.cfg.Auth.AccessSSO.Enabled {
+		mux.Handle("POST /api/auth/magic/local", authRateLimited(authHandler.GenerateMagicLocal))
+	}
+	if s.cfg.Auth.AccessSSO.Enabled {
+		mux.Handle("POST /api/auth/access", authRateLimited(authHandler.AccessLogin))
+	}
+	if s.magicStore != nil && !s.cfg.Auth.AccessSSO.Enabled {
 		mux.Handle("POST /api/auth/magic", authRateLimited(authHandler.ExchangeMagic))
 	}
 
@@ -925,7 +937,7 @@ func (s *Server) routes() http.Handler {
 	// AND the cloud layer hasn't opted to provide its own auth routes.
 	// In the open-source build this is off by default (local mode uses magic links).
 	// Cloud and self-hosted password deployments enable it via WithFeatures.
-	if s.features.PasswordAuth && !s.skipBuiltinAuthRoutes {
+	if s.features.PasswordAuth && !s.skipBuiltinAuthRoutes && !s.cfg.Auth.AccessSSO.Enabled {
 		mux.Handle("POST /api/auth/register", authRateLimited(authHandler.Register))
 		mux.Handle("POST /api/auth/login", authRateLimited(authHandler.Login))
 		mux.Handle("PUT /api/me", user(authHandler.UpdateMe))
@@ -960,7 +972,9 @@ func (s *Server) routes() http.Handler {
 	// headlessly). Invites are the enrollment channel; role changes and
 	// deletes carry last-admin protection.
 	usersHandler := handlers.NewUsersHandler(s.store, baseURL, s.logger)
-	mux.Handle("POST /api/users/invites", adminOrToken(usersHandler.CreateInvite))
+	if !s.cfg.Auth.AccessSSO.Enabled {
+		mux.Handle("POST /api/users/invites", adminOrToken(usersHandler.CreateInvite))
+	}
 	mux.Handle("GET /api/users/invites", adminOrToken(usersHandler.ListInvites))
 	mux.Handle("DELETE /api/users/invites/{id}", adminOrToken(usersHandler.DeleteInvite))
 	mux.Handle("GET /api/users", adminOrToken(usersHandler.ListUsers))
@@ -1538,7 +1552,11 @@ func (s *Server) routes() http.Handler {
 	// Recover is innermost (after logging/security) so panics become 500s
 	// with a logged stack trace, and the logging middleware still records the
 	// request line.
-	handler := securityMiddleware(logMiddleware(recoverMiddleware(mux)))
+	var routed http.Handler = mux
+	if s.cfg.Auth.AccessSSO.Enabled {
+		routed = authHandler.ProtectAccessSessions(routed)
+	}
+	handler := securityMiddleware(logMiddleware(recoverMiddleware(routed)))
 
 	// Extension hook: let cloud/enterprise layers wrap the entire handler.
 	if s.wrapRoutes != nil {
@@ -1803,6 +1821,9 @@ func (s *Server) handleFeatures(w http.ResponseWriter, r *http.Request) {
 	// when disabled it fails fast with a clear capability error instead of
 	// hitting 404/401 on the token routes.
 	fs.APITokens = s.features.APITokens
+	if s.cfg.Auth.AccessSSO.Enabled {
+		fs.PasswordAuth = false
+	}
 	// User management + invites (spec 04) are likewise unconditionally
 	// registered; advertise the capability so the Terraform provider does not
 	// wrongly block clawvisor_user (spec 06b finding M1).

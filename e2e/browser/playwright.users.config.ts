@@ -4,7 +4,7 @@ import { defineConfig } from '@playwright/test'
 // fixtures. No production account, email delivery, or server binary is involved.
 export default defineConfig({
   testDir: './tests',
-  testMatch: 'users.spec.ts',
+  testMatch: ['users.spec.ts', 'access-sso.spec.ts'],
   workers: 1,
   timeout: 30_000,
   use: { baseURL: 'http://127.0.0.1:4178', viewport: { width: 1280, height: 1100 }, browserName: 'chromium', screenshot: 'only-on-failure' },
