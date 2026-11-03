@@ -16,6 +16,8 @@ export default function Users() {
 }
 
 function UserManagement({ currentUserId }: { currentUserId: string }) {
+  const { authMode } = useAuth()
+  const accessSSO = authMode === 'cloudflare'
   const qc = useQueryClient()
   const key = ['instance-users', currentUserId]
   const [email, setEmail] = useState('')
@@ -72,7 +74,7 @@ function UserManagement({ currentUserId }: { currentUserId: string }) {
       {query.isPending ? <p role="status">Loading users…</p> : query.isError ? (
         <div role="alert" className="text-danger"><p>{query.error.message}</p><button className={button} onClick={() => query.refetch()}>Try again</button></div>
       ) : <>
-        <section className="bg-surface-1 border border-border-default rounded-lg p-4 space-y-3">
+        {accessSSO ? <section className="bg-surface-1 border border-border-default rounded-lg p-4 space-y-3"><h2 className="font-semibold">Ontora Google access</h2><p className="text-sm text-text-secondary">Authorized founders join when they sign in with Google. Password invitations and email verification are disabled. To revoke sign-in access, remove the founder from both the application allowlist and Cloudflare Access policy; deleting an account here only removes its data.</p></section> : <section className="bg-surface-1 border border-border-default rounded-lg p-4 space-y-3">
           <h2 className="font-semibold">Invite a user</h2>
           <p className="text-sm text-text-secondary">Create a single-use link, valid for 48 hours. No email is sent. Your organization’s access policy still applies. New users join as members and must complete email verification before signing in.</p>
           <form onSubmit={submit} className="flex flex-wrap gap-3">
@@ -86,7 +88,7 @@ function UserManagement({ currentUserId }: { currentUserId: string }) {
             <div className="flex gap-2"><button className={button} onClick={copyLink}>Copy link</button><button className={button} onClick={() => setCreated(null)}>Dismiss link</button></div>
             <p className="text-sm">{copyMessage}</p>
           </div>}
-        </section>
+        </section>}
         <section className="space-y-3">
           <h2 className="font-semibold">Accounts ({query.data.users.length})</h2>
           <div className="overflow-x-auto border border-border-default rounded-lg"><table className="w-full text-sm text-left">

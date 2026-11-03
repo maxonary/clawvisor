@@ -24,11 +24,16 @@ type AuthHandler struct {
 	cfg        config.AuthConfig
 	magicStore pkgauth.MagicTokenStore // nil when magic link auth is disabled
 	baseURL    string
+	accessSSO  *accessIdentityVerifier
 	isLocal    bool // true when server is bound to loopback/wildcard (allows Docker bridge IPs for magic local auth)
 }
 
 func NewAuthHandler(jwtSvc pkgauth.TokenService, st store.Store, cfg config.AuthConfig, magicStore pkgauth.MagicTokenStore, baseURL string, isLocal bool) *AuthHandler {
-	return &AuthHandler{jwtSvc: jwtSvc, st: st, cfg: cfg, magicStore: magicStore, baseURL: baseURL, isLocal: isLocal}
+	h := &AuthHandler{jwtSvc: jwtSvc, st: st, cfg: cfg, magicStore: magicStore, baseURL: baseURL, isLocal: isLocal}
+	if cfg.AccessSSO.Enabled {
+		h.accessSSO = newAccessIdentityVerifier(cfg.AccessSSO)
+	}
+	return h
 }
 
 type authResponse struct {
@@ -293,6 +298,15 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 // POST /api/auth/refresh
 // Body: {"refresh_token": "..."}
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
+	var ssoEmail string
+	if h.cfg.AccessSSO.Enabled {
+		var err error
+		ssoEmail, err = h.accessSSO.email(r)
+		if err != nil {
+			writeError(w, http.StatusUnauthorized, "SSO_REQUIRED", "Sign in with your Ontora Google account.")
+			return
+		}
+	}
 	var body struct {
 		RefreshToken string `json:"refresh_token"`
 	}
@@ -332,6 +346,10 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if h.cfg.AccessSSO.Enabled && !strings.EqualFold(ssoEmail, user.Email) {
+		writeError(w, http.StatusForbidden, "SSO_IDENTITY_MISMATCH", "Sign in again with your Ontora Google account.")
+		return
+	}
 	resp, err := h.issueTokens(w, r, user)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not issue tokens")

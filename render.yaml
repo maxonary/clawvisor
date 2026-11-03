@@ -26,10 +26,20 @@ services:
           property: connectionString
       - key: AUTH_MODE
         value: password
-      # 0 removes the account cap; enrollment still requires an admin invite.
+      # SSO enrollment is restricted to the exact founder identities below.
       - key: MAX_USERS
         value: "0"
       - key: ALLOWED_EMAILS
+        value: max@ontora.com,leon@ontora.com,david@ontora.com
+      - key: ACCESS_SSO_ENABLED
+        value: "true"
+      - key: ACCESS_SSO_ISSUER
+        value: https://ontorainc.cloudflareaccess.com
+      - key: ACCESS_SSO_AUDIENCE
+        value: 7dbbb2a8c55493f856fb59fe21c6ac6c18af54d32074a4545351e4f406207626
+      - key: ACCESS_SSO_EMAILS
+        value: max@ontora.com,leon@ontora.com,david@ontora.com
+      - key: ACCESS_SSO_BOOTSTRAP_ADMIN
         value: max@ontora.com
       - key: AUTH_REQUIRE_INVITE
         value: "true"

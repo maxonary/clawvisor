@@ -1579,6 +1579,7 @@ export const api = {
       post<{ status: 'pending_verification'; user_id: string; email: string }>('/api/auth/register', { email, password, invite_token: token }),
   },
   auth: {
+    access: () => post<AuthResponse>('/api/auth/access', {}),
     register: (email: string, password: string) =>
       post<RegisterResult>('/api/auth/register', { email, password }),
     joinWaitlist: (email: string) =>
@@ -1906,7 +1907,7 @@ export const api = {
       put<TelegramGroup>(`/api/notifications/telegram/groups/active/${groupChatId}/auto-approval`, { enabled, ...(notify !== undefined && { notify }) }),
   },
   config: {
-    public: () => get<{ auth_mode: 'magic_link' | 'password' | 'passkey'; proxy_lite_public_url?: string }>('/api/config/public'),
+    public: () => get<{ auth_mode: 'magic_link' | 'password' | 'passkey' | 'cloudflare'; proxy_lite_public_url?: string }>('/api/config/public'),
   },
   version: {
     get: () => get<VersionInfo>('/api/version'),
