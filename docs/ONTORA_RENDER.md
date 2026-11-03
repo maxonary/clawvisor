@@ -19,9 +19,29 @@ so it can use the private connection.
 values across deployments. The vault key encrypts the credentials in Postgres;
 losing or replacing it makes existing encrypted credentials unreadable.
 
-Registration is limited to `max@ontora.com`, with one human user. The first
-registered user becomes the administrator. Set the password directly in the new
-instance's dashboard; never commit it. Invitation-only registration is also enabled.
+The initial administrator registers as `max@ontora.com`. Set the password directly
+in the instance's dashboard; never commit it. `MAX_USERS=0` removes the account
+cap so the administrator can invite additional team members.
+
+`AUTH_REQUIRE_INVITE=true` keeps subsequent registration invitation-only. The
+`ALLOWED_EMAILS` setting restricts initial registration; valid administrator-issued
+invites bypass that list, so invited teammates can use their own email addresses.
+Invite claims create member accounts pending email verification. Configure the
+supported email verification delivery before onboarding teammates; without it,
+claiming an invitation does not produce a usable signed-in account. Admin role
+promotion remains a separate administrator action.
+
+Instance administrators can open **Users** in the dashboard sidebar
+(`/dashboard/users`) to view accounts and verification status, create and copy
+48-hour member invitation links, revoke invitations, change roles, and remove
+accounts. Role changes and removals require confirmation. The screen protects
+your own account and the last administrator; the existing server authorization
+and last-admin checks remain authoritative. Links open `/join?token=...` for
+password registration, which leaves the new account pending verification.
+The screen does not send invitation or verification emails, bypass verification,
+or grant access through Cloudflare. The founder-only Google Workspace policy
+still applies to every user.
+
 This is a fresh instance: existing ClawVisor accounts, credentials, policies,
 audit history, and agent integrations have not been migrated.
 

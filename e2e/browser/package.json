@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "test": "playwright test",
-    "report": "playwright show-report"
+    "report": "playwright show-report",
+    "test:users": "playwright test --config playwright.users.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "1.55.1"

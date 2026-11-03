@@ -26,8 +26,9 @@ services:
           property: connectionString
       - key: AUTH_MODE
         value: password
+      # 0 removes the account cap; enrollment still requires an admin invite.
       - key: MAX_USERS
-        value: "1"
+        value: "0"
       - key: ALLOWED_EMAILS
         value: max@ontora.com
       - key: AUTH_REQUIRE_INVITE
