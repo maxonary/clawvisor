@@ -9,7 +9,7 @@ Important areas:
 - `cmd/` contains CLI and server entry points.
 - `internal/` contains private implementation packages for the API server, gateway flow, adapters, auth, daemon commands, MCP, intent verification, notifications, runtime proxy, TUI, and related subsystems.
 - `pkg/` contains public/shared packages such as adapter interfaces, config, gateway types, store, vault, runtime, notifications, and version metadata.
-- `web/` contains the React + TypeScript + Vite dashboard.
+- `web/` contains the React + TypeScript + Vite dashboard. Instance user management is in `Users.tsx` at `/dashboard/users` and uses `/api/users`; it is separate from the organization-scoped `OrgMembers.tsx` surface. `/join` handles instance invitation claims without granting a session before verification.
 - `docs/` contains setup, integration, architecture, runtime proxy, and adapter guidance. Start with `docs/ARCHITECTURE.md` for deeper system context.
 - `skills/clawvisor/` contains the agent-facing Clawvisor skill and protocol documentation.
 - `coworkplugin/` contains the CoWork plugin extension package.

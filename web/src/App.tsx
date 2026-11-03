@@ -20,6 +20,7 @@ import MFAVerify from './pages/MFAVerify'
 import SecuritySetup from './pages/SecuritySetup'
 import Waitlist from './pages/Waitlist'
 import AcceptInvite from './pages/AcceptInvite'
+import JoinInstance from './pages/JoinInstance'
 import SSOComplete from './pages/SSOComplete'
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
@@ -96,6 +97,7 @@ export default function App() {
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/waitlist" element={<Waitlist />} />
       <Route path="/accept-invite" element={<AcceptInvite />} />
+      {passwordAuth && <Route path="/join" element={<JoinInstance />} />}
       {ssoEnabled && <Route path="/login/sso" element={<SSOLogin />} />}
       <Route path="/sso/complete" element={<SSOComplete />} />
       <Route path="/pricing" element={<Pricing />} />

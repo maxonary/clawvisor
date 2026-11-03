@@ -31,6 +31,17 @@ supported email verification delivery before onboarding teammates; without it,
 claiming an invitation does not produce a usable signed-in account. Admin role
 promotion remains a separate administrator action.
 
+Instance administrators can open **Users** in the dashboard sidebar
+(`/dashboard/users`) to view accounts and verification status, create and copy
+48-hour member invitation links, revoke invitations, change roles, and remove
+accounts. Role changes and removals require confirmation. The screen protects
+your own account and the last administrator; the existing server authorization
+and last-admin checks remain authoritative. Links open `/join?token=...` for
+password registration, which leaves the new account pending verification.
+The screen does not send invitation or verification emails, bypass verification,
+or grant access through Cloudflare. The founder-only Google Workspace policy
+still applies to every user.
+
 This is a fresh instance: existing ClawVisor accounts, credentials, policies,
 audit history, and agent integrations have not been migrated.
 

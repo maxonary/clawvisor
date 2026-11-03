@@ -207,6 +207,25 @@ export class APIError extends Error {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+export type InstanceRole = 'admin' | 'member'
+export interface InstanceUser {
+  id: string
+  email: string
+  role: InstanceRole
+  verified: boolean
+  created_at: string
+}
+export interface InstanceInvite {
+  id: string
+  email: string
+  role: InstanceRole
+  expires_at: string
+  created_at: string
+}
+export interface CreatedInstanceInvite extends Omit<InstanceInvite, 'created_at'> {
+  invite_url: string
+}
+
 export interface User {
   id: string
   email: string
@@ -812,6 +831,7 @@ export interface FeatureSet {
   runtime_activity: boolean
   agent_live_sessions: boolean
   service_presets: boolean
+  user_management?: boolean
 }
 
 export interface VersionInfo {
@@ -1548,6 +1568,16 @@ export interface CustomMCPServer {
 // ── API surface ───────────────────────────────────────────────────────────────
 
 export const api = {
+  users: {
+    list: () => get<{ users: InstanceUser[] }>('/api/users'),
+    invite: (email: string) => post<CreatedInstanceInvite>('/api/users/invites', { email, role: 'member' }),
+    invites: () => get<{ invites: InstanceInvite[] }>('/api/users/invites'),
+    revokeInvite: (id: string) => del<void>(`/api/users/invites/${encodeURIComponent(id)}`),
+    updateRole: (id: string, role: InstanceRole) => put<{ id: string; role: InstanceRole }>(`/api/users/${encodeURIComponent(id)}/role`, { role }),
+    remove: (id: string) => del<void>(`/api/users/${encodeURIComponent(id)}`),
+    claimInvite: (email: string, password: string, token: string) =>
+      post<{ status: 'pending_verification'; user_id: string; email: string }>('/api/auth/register', { email, password, invite_token: token }),
+  },
   auth: {
     register: (email: string, password: string) =>
       post<RegisterResult>('/api/auth/register', { email, password }),
